@@ -1,0 +1,52 @@
+pipeline {
+    agent any
+    
+    tools {
+        maven 'localMaven'
+    }
+    
+    stages {
+        stage('Clone') {
+            steps {
+                git credentialsId: 'secret_key_4_github', url: 'https://github.com/Jibete/maven-project.git'
+                //checkout([$class: 'GitSCM', branches: [['*/master']],
+                //    extensions:scm.extensions,
+                //    userRemoteConfigs:[[url: 'https://github.com/Jibete/maven-project.git',
+                //    credentialsId : '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']]
+                //])
+            }
+        }
+        
+        stage('Compile') {
+            steps {
+                withMaven(maven : 'localMaven') {
+                    bat "mvn compile"
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                withMaven(maven : 'localMaven') {
+                    bat "mvn test"
+                }
+            }
+        }
+        
+        stage('Build') {
+            steps {
+                withMaven(maven : 'localMaven') {
+                    bat "mvn -B -DskipTests clean package"
+                }
+            }
+        }
+        
+        stage('Build and Send Results Sonar') {
+            steps {
+                withSonarQubeEnv(installationName : 'localSonarQube', credentialsId : 'key4sonarqube') {
+                    bat "mvn -B -DskipTests clean package sonar:sonar"
+                }
+            }
+        }
+    }
+}
